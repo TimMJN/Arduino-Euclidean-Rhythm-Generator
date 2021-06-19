@@ -1,3 +1,6 @@
 [submodule "Tlc5940"]
 	path = Tlc5940
 	url = https://github.com/PaulStoffregen/Tlc5940
+[submodule "Adafruit-MCP23017-Arduino-Library"]
+	path = Adafruit-MCP23017-Arduino-Library
+	url = https://github.com/adafruit/Adafruit-MCP23017-Arduino-Library
