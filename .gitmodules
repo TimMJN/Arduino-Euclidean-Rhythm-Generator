@@ -1,0 +1,3 @@
+[submodule "Tlc5940"]
+	path = Tlc5940
+	url = https://github.com/PaulStoffregen/Tlc5940
