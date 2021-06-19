@@ -1,6 +1,6 @@
 [submodule "Tlc5940"]
-	path = arduino_euclidean_rhythm_generator_firmware/Tlc5940
+	path = arduino_euclidean_rhythm_generator_firmware/src/Tlc5940
 	url = https://github.com/PaulStoffregen/Tlc5940
 [submodule "Adafruit-MCP23017-Arduino-Library"]
-	path = arduino_euclidean_rhythm_generator_firmware/Adafruit-MCP23017-Arduino-Library
+	path = arduino_euclidean_rhythm_generator_firmware/src/Adafruit-MCP23017-Arduino-Library
 	url = https://github.com/adafruit/Adafruit-MCP23017-Arduino-Library
