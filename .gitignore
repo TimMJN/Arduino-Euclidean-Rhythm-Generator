@@ -8,3 +8,4 @@
 arduino_euclidean_rhythm_generator_schematic/fp-info-cache
 *.net
 *.kicad_pcb-bak
+*.tmp
