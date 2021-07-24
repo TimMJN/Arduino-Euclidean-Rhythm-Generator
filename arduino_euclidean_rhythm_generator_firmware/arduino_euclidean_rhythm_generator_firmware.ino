@@ -18,6 +18,11 @@
 
 // pin definitions
 #define CLK_IN      2
+#define RESET_IN    4
+#define OUT1        5
+#define OUT2        6
+#define OUT3        7
+#define OUT4        8
 
 #define LED_GS_CLK  3
 #define LED_LAT     9
@@ -33,26 +38,36 @@
 #define ENC_A1      0
 #define ENC_B1      1
 #define ENC_S1      8
+#define ENC_A2      2
+#define ENC_B2      3
+#define ENC_S2      9
+#define ENC_A3      4
+#define ENC_B3      5
+#define ENC_S3     10
+#define ENC_A4      6
+#define ENC_B4      7
+#define ENC_S4     11
 
 // constants
-#define N_CHANNELS  1
-#define NUM_TLCS    N_CHANNELS
+#define N_CHANNELS  4  // if you adjust this, also set it in src/Tlc5940/tlc_config.h
 #define MAX_LENGTH  16
 #define MIN_LENGTH  1
 #define TIMEOUT     5000
 
-const byte ENC_A_PINS[N_CHANNELS] = {ENC_A1};
-const byte ENC_B_PINS[N_CHANNELS] = {ENC_B1};
-const byte ENC_S_PINS[N_CHANNELS] = {ENC_S1};
+const byte ENC_A_PINS[N_CHANNELS] = {ENC_A1,ENC_A2,ENC_A3,ENC_A4};
+const byte ENC_B_PINS[N_CHANNELS] = {ENC_B1,ENC_B2,ENC_B3,ENC_B4};
+const byte ENC_S_PINS[N_CHANNELS] = {ENC_S1,ENC_S2,ENC_S3,ENC_S4};
+
+const byte OUT_PINS[N_CHANNELS] = {OUT1,OUT2,OUT3,OUT4};
 
 uint8_t enc_int_cap_reg;   // MCP23017 interrupt capture register address for encoder
 uint8_t sw_int_cap_reg;    // MCP23017 interrupt capture register address for encoder switches
 
 // initial settings
-byte seq_length[N_CHANNELS] = {MAX_LENGTH}; // length of the sequence
-byte n_hits[N_CHANNELS]     = {1};          // number of hits in the sequence
-byte offset[N_CHANNELS]     = {0};          // off-set of the sequence
-byte curr_step[N_CHANNELS]  = {0};          // current step
+byte seq_length[N_CHANNELS] = {MAX_LENGTH,MAX_LENGTH,MAX_LENGTH,MAX_LENGTH}; // length of the sequence
+byte n_hits[N_CHANNELS]     = {1, 1, 1, 1};          // number of hits in the sequence
+byte offset[N_CHANNELS]     = {0, 0, 0, 0};          // off-set of the sequence
+byte curr_step[N_CHANNELS]  = {0, 0, 0, 0};          // current step
 
 // sequence
 bool sequence[N_CHANNELS][MAX_LENGTH];
@@ -75,6 +90,13 @@ void setup() {
   // set Arduino pinModes
   pinMode(GPIO_INT_A, INPUT_PULLUP);
   pinMode(GPIO_INT_B, INPUT_PULLUP);
+
+  pinMode(CLK_IN,   INPUT);
+  pinMode(RESET_IN, INPUT);
+  for (int i = 0; i < N_CHANNELS; i++) {
+    pinMode(OUT_PINS[i], OUTPUT);
+    digitalWrite(OUT_PINS[i],LOW);
+  }
 
   // set up MCP23017 pins
   mcp.begin();
@@ -240,12 +262,12 @@ void update_leds() {
   for (int i = 0; i < N_CHANNELS; i++) {
     if (length_mode[i]) {
       for (int j = 0; j < seq_length_temp[i]; j++)
-        Tlc.set(j, 4095);
+        Tlc.set(16*i+j, 1000);
     }
     else {
       for (int j = 0; j < MAX_LENGTH; j++) {
         if (sequence[i][j])
-          Tlc.set(j, 4095);
+          Tlc.set(16*i+j, 1000);
       }
     }
   }
