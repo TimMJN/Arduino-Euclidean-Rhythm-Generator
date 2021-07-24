@@ -6,8 +6,8 @@
 
    by TimMJN
 
-   v0.3
-   20-06-2021
+   v1.0
+   24-07-2021
 
    For schematics and other information, see
    https://github.com/TimMJN/Arduino-Euclidean-Rhythm-Generator
@@ -16,7 +16,7 @@
 #include "src/Adafruit-MCP23017-Arduino-Library/Adafruit_MCP23017.h"
 #include "src/Tlc5940/Tlc5940.h"
 
-// pin definitions
+// Arduino pin definitions
 #define CLK_IN      2
 #define RESET_IN    4
 #define OUT1        5
@@ -35,6 +35,7 @@
 #define GPIO_DAT    18
 #define GPIO_CLK    19
 
+// MCP23017 pin definitions
 #define ENC_A1      0
 #define ENC_B1      1
 #define ENC_S1      8
@@ -49,22 +50,29 @@
 #define ENC_S4     11
 
 // constants
-#define N_CHANNELS  4  // if you adjust this, also set it in src/Tlc5940/tlc_config.h
-#define MAX_LENGTH  16
-#define MIN_LENGTH  1
-#define TIMEOUT     5000
+#define N_CHANNELS  4     // number of channels -  If you adjust this, also set it in src/Tlc5940/tlc_config.h
+#define MAX_LENGTH  16    // max sequence length
+#define MIN_LENGTH  1     // min sequence length
+#define TIMEOUT     5000  // time-out of sequence length adjustment (ms)
 
-const byte ENC_A_PINS[N_CHANNELS] = {ENC_A1,ENC_A2,ENC_A3,ENC_A4};
-const byte ENC_B_PINS[N_CHANNELS] = {ENC_B1,ENC_B2,ENC_B3,ENC_B4};
-const byte ENC_S_PINS[N_CHANNELS] = {ENC_S1,ENC_S2,ENC_S3,ENC_S4};
+// led brightness settings (0 - 4095)
+#define CUR_STEP_BRIGHTNESS     4095
+#define HIT_BRIGHTNESS          800
+#define NO_HIT_BRIGHTNESS       20
+#define INACTIVE_BRIGHTNESS     0
+#define LENGTH_MODE_BRIGHTNESS  200
 
-const byte OUT_PINS[N_CHANNELS] = {OUT1,OUT2,OUT3,OUT4};
+const byte ENC_A_PINS[N_CHANNELS] = {ENC_A1, ENC_A2, ENC_A3, ENC_A4};
+const byte ENC_B_PINS[N_CHANNELS] = {ENC_B1, ENC_B2, ENC_B3, ENC_B4};
+const byte ENC_S_PINS[N_CHANNELS] = {ENC_S1, ENC_S2, ENC_S3, ENC_S4};
+
+const byte OUT_PINS[N_CHANNELS]   = {OUT1,  OUT2,  OUT3,  OUT4};
 
 uint8_t enc_int_cap_reg;   // MCP23017 interrupt capture register address for encoder
 uint8_t sw_int_cap_reg;    // MCP23017 interrupt capture register address for encoder switches
 
 // initial settings
-byte seq_length[N_CHANNELS] = {MAX_LENGTH,MAX_LENGTH,MAX_LENGTH,MAX_LENGTH}; // length of the sequence
+byte seq_length[N_CHANNELS] = {MAX_LENGTH, MAX_LENGTH, MAX_LENGTH, MAX_LENGTH}; // length of the sequence
 byte n_hits[N_CHANNELS]     = {1, 1, 1, 1};          // number of hits in the sequence
 byte offset[N_CHANNELS]     = {0, 0, 0, 0};          // off-set of the sequence
 byte curr_step[N_CHANNELS]  = {0, 0, 0, 0};          // current step
@@ -75,6 +83,11 @@ bool sequence[N_CHANNELS][MAX_LENGTH];
 // encoder switch states
 bool curr_switch_states[N_CHANNELS];
 bool prev_switch_states[N_CHANNELS];
+
+// reset pin states
+bool cur_reset_state  = false;
+bool prev_reset_state = false;
+bool do_reset         = false;
 
 // mode selection
 bool length_mode[N_CHANNELS];                 // sequence length editing mode
@@ -95,8 +108,11 @@ void setup() {
   pinMode(RESET_IN, INPUT);
   for (int i = 0; i < N_CHANNELS; i++) {
     pinMode(OUT_PINS[i], OUTPUT);
-    digitalWrite(OUT_PINS[i],LOW);
+    digitalWrite(OUT_PINS[i], LOW);
   }
+
+  // set up Arduino interrupt
+  attachInterrupt(digitalPinToInterrupt(CLK_IN), clock_isr, CHANGE);
 
   // set up MCP23017 pins
   mcp.begin();
@@ -157,6 +173,13 @@ void loop() {
       }
     }
   }
+
+  // handle reset pin
+  cur_reset_state = !digitalRead(RESET_IN);
+  if (cur_reset_state && !prev_reset_state) { // input rising edge
+    do_reset = true;
+  }
+  prev_reset_state = cur_reset_state;
 
 }
 
@@ -221,10 +244,11 @@ void readSwitches() {
         length_mode[i] = false;
 
         // update the sequence length
-        seq_length[i]  = seq_length_temp[i];
-        curr_step[i]  %= seq_length[i];
-        offset[i]     %= seq_length[i];
-        n_hits[i]      = min(n_hits[i], seq_length[i]);
+        n_hits[i]      = (int) n_hits[i] * seq_length_temp[i] / seq_length[i];  // keep fill ratio (approximately) constant
+        n_hits[i]      = min(n_hits[i], seq_length[i]);   // constrain n_hits
+        seq_length[i]  = seq_length_temp[i];              // update sequence length
+        curr_step[i]  %= seq_length[i];                   // constrain current step
+        offset[i]     %= seq_length[i];                   // constrain offset
 
         has_turned_since_press[i] = true; // prevent getting stuck in length mode
 
@@ -257,21 +281,42 @@ void readSwitches() {
 
 // send data out to the LEDs
 void update_leds() {
-  Tlc.clear();
 
   for (int i = 0; i < N_CHANNELS; i++) {
+
+    // length selection mode
     if (length_mode[i]) {
+      // active steps
       for (int j = 0; j < seq_length_temp[i]; j++)
-        Tlc.set(16*i+j, 1000);
-    }
-    else {
-      for (int j = 0; j < MAX_LENGTH; j++) {
-        if (sequence[i][j])
-          Tlc.set(16*i+j, 1000);
+        Tlc.set(16 * i + j, LENGTH_MODE_BRIGHTNESS);
+
+      // inactive steps
+      for (int j = seq_length_temp[i]; j < MAX_LENGTH; j++) {
+        Tlc.set(16 * i + j, INACTIVE_BRIGHTNESS);
       }
     }
+
+    // regular mode
+    else {
+      // active steps
+      for (int j = 0; j < seq_length[i]; j++) {
+        if (sequence[i][j])
+          Tlc.set(16 * i + j, HIT_BRIGHTNESS);
+        else
+          Tlc.set(16 * i + j, NO_HIT_BRIGHTNESS);
+      }
+
+      // inactive steps
+      for (int j = seq_length[i]; j < MAX_LENGTH; j++) {
+        Tlc.set(16 * i + j, INACTIVE_BRIGHTNESS);
+      }
+    }
+
+    // current step
+    Tlc.set(16 * i + curr_step[i], CUR_STEP_BRIGHTNESS);
   }
 
+  // push to TLCs
   Tlc.update();
 }
 
@@ -298,4 +343,40 @@ void update_sequence() {
       sequence[i][j] = false;
     }
   }
+}
+
+////////////////////////////////////////////////////////////////////////////////////////////////////
+
+// handle clock falling/rising edges
+void clock_isr() {
+
+  // rising edge on input
+  if (!digitalRead(CLK_IN)) {
+    for (int i = 0; i < N_CHANNELS; i++) {
+      // update current step
+      if (do_reset) {
+        curr_step[i] = 0;
+      }
+      else {
+        curr_step[i]++;
+        curr_step[i] %= seq_length[i];
+      }
+
+      // set outputs
+      if (sequence[i][curr_step[i]])
+        digitalWrite(OUT_PINS[i], HIGH);
+      else
+        digitalWrite(OUT_PINS[i], LOW);
+    }
+    do_reset = false;
+    update_leds();
+  }
+
+  // falling edge on input
+  else {
+    for (int i = 0; i < N_CHANNELS; i++) {
+      digitalWrite(OUT_PINS[i], LOW);
+    }
+  }
+
 }
