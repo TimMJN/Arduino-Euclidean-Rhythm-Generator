@@ -19,3 +19,5 @@ arduino_euclidean_rhythm_generator_schematic/fp-info-cache
 *.gm1
 *.gto
 *.gbr
+*.xlsx
+*.csv
