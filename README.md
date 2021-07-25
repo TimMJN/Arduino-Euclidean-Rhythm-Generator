@@ -11,7 +11,7 @@ Euclidean Rhythm Generator module based on Arduino Nano, compatible with Eurorac
 A [short demonstration](https://youtu.be/4AOBJ-tzH3Y) is available on YouTube.
 
 # Frequently Asked Questions
-# The build
+## The build
 #### Do you have PCBs / panels available?
 A PCB design for Kosmo format is available, along with a panel drill guide. I might have some PCBs available, please get in touch. However, it is also possible to build this design on perfboard/stripboard. I want to encourage any builder to come up with their own panel layout, make whatever feels natural to them. If you document your work, I'll be happy to add it here for future reference.
 
