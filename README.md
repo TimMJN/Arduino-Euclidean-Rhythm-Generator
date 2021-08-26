@@ -16,6 +16,9 @@ A [short demonstration](https://youtu.be/4AOBJ-tzH3Y) is available on YouTube. V
 A PCB design for Kosmo format is available, along with a panel drill guide. I might have some PCBs available, please get in touch. However, it is also possible to build this design on perfboard/stripboard. I want to encourage any builder to come up with their own panel layout, make whatever feels natural to them. If you document your work, I'll be happy to add it here for future reference.
 
 ## The code
+#### Submodules
+This repository uses submodules to include libraries in the firmware. Please make sure, when cloning this repository, to also include the submodules in the [`src`](https://github.com/TimMJN/Arduino-Euclidean-Rhythm-Generator/tree/main/arduino_euclidean_rhythm_generator_firmware) directory.
+
 #### What settings are available to me in the firmware?
 - The `XXX_BRIGHTNESS` defines set the LED brightness for different function. Setting excessively high brightness might draw more current than the 5v regulator can comfortable supply.
 - `TIMEOUT` sets the time in ms after which adjustment of the sequence length gets cancelled.
