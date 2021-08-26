@@ -17,7 +17,7 @@ A PCB design for Kosmo format is available, along with a panel drill guide. I mi
 
 ## The code
 #### Submodules
-This repository uses submodules to include libraries in the firmware. Please make sure, when cloning this repository, to also include the submodules in the [`src`](https://github.com/TimMJN/Arduino-Euclidean-Rhythm-Generator/tree/main/arduino_euclidean_rhythm_generator_firmware) directory.
+This repository uses submodules to include libraries in the firmware. Please make sure, when cloning this repository, to also include the submodules in the [`src`](https://github.com/TimMJN/Arduino-Euclidean-Rhythm-Generator/tree/main/arduino_euclidean_rhythm_generator_firmware/src) directory.
 
 #### What settings are available to me in the firmware?
 - The `XXX_BRIGHTNESS` defines set the LED brightness for different function. Setting excessively high brightness might draw more current than the 5v regulator can comfortable supply.
