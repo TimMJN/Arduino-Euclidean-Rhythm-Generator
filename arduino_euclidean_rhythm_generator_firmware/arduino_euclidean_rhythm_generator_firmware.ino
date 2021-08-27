@@ -80,6 +80,10 @@ byte curr_step[N_CHANNELS]  = {0, 0, 0, 0};          // current step
 // sequence
 bool sequence[N_CHANNELS][MAX_LENGTH];
 
+// encoder pin A states
+bool curr_enc_states[N_CHANNELS];
+bool prev_enc_states[N_CHANNELS];
+
 // encoder switch states
 bool curr_switch_states[N_CHANNELS];
 bool prev_switch_states[N_CHANNELS];
@@ -135,8 +139,10 @@ void setup() {
     mcp.setupInterruptPin(ENC_S_PINS[i], CHANGE);
   }
 
-  // initialise encoder switch states
+  // initialise encoder states
   for (int i = 0; i < N_CHANNELS; i++) {
+    curr_enc_states[i]    = mcp.digitalRead(ENC_A_PINS[i]);
+    prev_enc_states[i]    = curr_enc_states[i];
     curr_switch_states[i] = mcp.digitalRead(ENC_S_PINS[i]);
     prev_switch_states[i] = curr_switch_states[i];
   }
@@ -194,7 +200,10 @@ void readEncoders() {
     bool enc_a = (reg >> mcp.bitForPin(ENC_A_PINS[i])) & (0x01);
     bool enc_b = (reg >> mcp.bitForPin(ENC_B_PINS[i])) & (0x01);
 
-    if (!enc_a) {
+    prev_enc_states[i] = curr_enc_states[i];
+    curr_enc_states[i] = enc_a;
+
+    if (!curr_enc_states[i] && prev_enc_states[i]) {
       has_turned_since_press[i] = true;
       time_at_last_turn[i] = millis();
 
@@ -210,20 +219,18 @@ void readEncoders() {
         seq_length_temp[i] = constrain((int) seq_length_temp[i] + increment, MIN_LENGTH, MAX_LENGTH);
         update_leds();
       }
+      else if (!curr_switch_states[i]) {
+        offset[i] += (increment + seq_length[i]);
+        offset[i] %= seq_length[i];
+      }
       else {
-        if (!curr_switch_states[i]) {
-          offset[i] += (increment + seq_length[i]);
-          offset[i] %= seq_length[i];
-        }
-        else {
-          n_hits[i] = constrain((int) n_hits[i] + increment, 0, seq_length[i]);
-        }
-
-        update_sequence();
-        update_leds();
+        n_hits[i] = constrain((int) n_hits[i] + increment, 0, seq_length[i]);
       }
 
+      update_sequence();
+      update_leds();
     }
+
   }
 }
 
