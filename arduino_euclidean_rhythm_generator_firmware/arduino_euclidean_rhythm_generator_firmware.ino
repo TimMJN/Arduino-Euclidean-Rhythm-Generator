@@ -6,12 +6,15 @@
 
    by TimMJN
 
-   v1.0
-   24-07-2021
+   v1.1
+   02-01-2023
 
    For schematics and other information, see
    https://github.com/TimMJN/Arduino-Euclidean-Rhythm-Generator
 */
+
+// enable CV expander here
+//#define CV_EXPANDER
 
 #include "src/Adafruit-MCP23017-Arduino-Library/Adafruit_MCP23017.h"
 #include "src/Tlc5940/Tlc5940.h"
@@ -101,6 +104,11 @@ byte seq_length_temp[N_CHANNELS];             // temporary sequence length displ
 
 Adafruit_MCP23017 mcp;
 
+// set up CV expander
+#ifdef CV_EXPANDER
+  #include "src/CV_expander/CV_expander.h"
+#endif
+
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 
 void setup() {
@@ -152,6 +160,11 @@ void setup() {
     length_mode[i] = false;
   }
 
+  // initialise CVs
+  #ifdef CV_EXPANDER
+    cv_expander_setup();
+  #endif
+  
   // initialise sequences
   update_sequence();
 
@@ -166,9 +179,9 @@ void setup() {
 void loop() {
   // handle encoders and switches
   if (!digitalRead(GPIO_INT_B))
-    readSwitches();
+    read_switches();
   if (!digitalRead(GPIO_INT_A))
-    readEncoders();
+    read_encoders();
 
   // handle length_mode timeout
   for (int i = 0; i < N_CHANNELS; i++) {
@@ -187,12 +200,19 @@ void loop() {
   }
   prev_reset_state = cur_reset_state;
 
+  // handle CV expander
+  #ifdef CV_EXPANDER
+    if (read_cvs()) {
+      update_sequence();
+      update_leds();
+    }
+  #endif  
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 
 // read the encoders and process the results
-void readEncoders() {
+void read_encoders() {
   uint8_t reg = mcp.readRegister(enc_int_cap_reg); // pull data from MCP23017
 
   for (int i = 0; i < N_CHANNELS; i++) {
@@ -230,14 +250,13 @@ void readEncoders() {
       update_sequence();
       update_leds();
     }
-
   }
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 
 // read the encoder switches and process the results
-void readSwitches() {
+void read_switches() {
   uint8_t reg = mcp.readRegister(sw_int_cap_reg); // pull data from MCP23017
 
   for (int i = 0; i < N_CHANNELS; i++) {
@@ -259,6 +278,10 @@ void readSwitches() {
 
         has_turned_since_press[i] = true; // prevent getting stuck in length mode
 
+        #ifdef CV_EXPANDER
+          analog_values[0] = -1; // force update of cv values
+          read_cvs();
+        #endif
         update_sequence();
         update_leds();
       }
@@ -280,7 +303,6 @@ void readSwitches() {
         update_leds();
       }
     }
-
   }
 }
 
@@ -333,16 +355,24 @@ void update_leds() {
 void update_sequence() {
   for (int i = 0; i < N_CHANNELS; i++) {
 
+    #ifdef CV_EXPANDER
+      byte n_hits_temp = constrain((int) n_hits[i] + n_hits_cv_values[i], 0, seq_length[i]);
+      byte offset_temp = (offset[i] + offset_cv_values[i] + seq_length[i]) % seq_length[i];
+    #else
+      byte n_hits_temp = n_hits[i];
+      byte offset_temp = offset[i];
+    #endif
+
     // see: https://www.computermusicdesign.com/simplest-euclidean-rhythm-algorithm-explained/
     int counter;
-    if (n_hits[i] == 0)
+    if (n_hits_temp == 0)
       counter = 0;
     else
-      counter = seq_length[i] - n_hits[i];
+      counter = seq_length[i] - n_hits_temp;
 
     for (int j = 0; j < seq_length[i]; j++) {
-      int k = (j + offset[i]) % seq_length[i];
-      counter += n_hits[i];
+      int k = (j + offset_temp) % seq_length[i];
+      counter += n_hits_temp;
       sequence[i][k] = (counter >= seq_length[i]);
       counter %= seq_length[i];
     }
@@ -385,5 +415,4 @@ void clock_isr() {
       digitalWrite(OUT_PINS[i], LOW);
     }
   }
-
 }
