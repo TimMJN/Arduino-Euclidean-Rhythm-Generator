@@ -10,6 +10,8 @@ Euclidean Rhythm Generator module based on Arduino Nano, compatible with Eurorac
 
 A [short demonstration](https://youtu.be/4AOBJ-tzH3Y) is available on YouTube. View the [schematics](arduino_euclidean_rhythm_generator_schematic/arduino_euclidean_rhythm_generator.pdf) and [bill of materials](https://htmlpreview.github.io/?https://github.com/TimMJN/Arduino-Euclidean-Rhythm-Generator/blob/main/arduino_euclidean_rhythm_generator_schematic/arduino_euclidean_rhythm_generator_BOM.html) on this repository.
 
+An optional CV expander module is available, which adds 4 CV inputs. By default, they are configured to affect the number of hits and rotation of the first two channels. 
+
 # Frequently Asked Questions
 ## The build
 #### Do you have PCBs / panels available?
@@ -23,6 +25,8 @@ This repository uses submodules to include libraries in the firmware. Please mak
 - The `XXX_BRIGHTNESS` defines set the LED brightness for different function. Setting excessively high brightness might draw more current than the 5v regulator can comfortable supply.
 - `TIMEOUT` sets the time in ms after which adjustment of the sequence length gets cancelled.
 - `n_hits` and `offset` get be used to set a pattern upon startup of the module.
+- Enable `#define CV_EXPANDER` to enable the CV expander module, if you have it installed.
+- Edit `N_HITS_CV_CHAN` and `OFFSET_CV_CHAN` in [CV_expander.h](arduino_euclidean_rhythm_generator_firmware/src/CV_expander/CV_expander.h) to change how the CV inputs affect the patterns.
 
 ## The patch
 #### How do I use this module?
