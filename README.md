@@ -8,7 +8,7 @@ Euclidean Rhythm Generator module based on Arduino Nano, compatible with Eurorac
 - external clock input
 - reset input/button
 
-A [short demonstration](https://youtu.be/4AOBJ-tzH3Y) is available on YouTube. View the [schematics](arduino_euclidean_rhythm_generator_schematic/arduino_euclidean_rhythm_generator.pdf) and [bill of materials](https://htmlpreview.github.io/?https://github.com/TimMJN/Arduino-Euclidean-Rhythm-Generator/blob/main/arduino_euclidean_rhythm_generator_schematic/arduino_euclidean_rhythm_generator_BOM.html) on this repository.
+A [short demonstration](https://youtu.be/4AOBJ-tzH3Y) is available on YouTube. View the [schematics](schematic+BOM/arduino_euclidean_rhythm_generator.pdf) and [bill of materials](https://htmlpreview.github.io/?https://github.com/TimMJN/Arduino-Euclidean-Rhythm-Generator/blob/main/schematic%2BBOM/arduino_euclidean_rhythm_generator_BOM.html) on this repository.
 
 An optional CV expander module is available, which adds 4 CV inputs. By default, they are configured to affect the number of hits and rotation of the first two channels. 
 
